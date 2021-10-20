@@ -4,7 +4,13 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.jackson.JacksonConverterFactory
 
 class RegistroActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,11 +34,28 @@ class RegistroActivity : AppCompatActivity() {
             usuario.edad = txtEdad
             usuario.email = txtEmail
             usuario.nombre = txtNombre
-            //Lo imprimios en el log cat
-            Log.i(
-                "XX",
-                " el usuario es ${usuario.nombre} su edad es ${usuario.edad} y su email ${usuario.email}"
-            )
+
+            //Aqui creamos la corutina de envio o conecion al back end debe estar siempre en un Thread separado
+            GlobalScope.launch(Dispatchers.IO){
+                //REcuerda que este IO es la corutina unicamente para conectarte al Back End, NO PUEDES
+                //EN ESTE BLOQUE CODIGO COMO EL DE LOS RENGLOES DE ARRIBA
+                //Aqui ya invocamos al servicio
+                var retrofit=Retrofit.Builder()
+                    .baseUrl("https://jc-amigos.herokuapp.com/")
+                    .addConverterFactory(JacksonConverterFactory.create())
+                    .build()
+                var servicioUsuario=retrofit.create(ServicioUsuario::class.java)
+                var hacerRequest=servicioUsuario.guardar(usuario)
+                //invocamos la respuesta del back end
+                var estatus=hacerRequest.execute().body()!!
+
+                //Ese estatus lo ponemos en la pantalla es decir en el Thread MAIN
+                launch(Dispatchers.Main){
+                    Toast.makeText(applicationContext,"Respuesta: ${estatus.mensaje}" , Toast.LENGTH_LONG)
+                        .show()
+                }
+            }
+
         }
     }
 }
